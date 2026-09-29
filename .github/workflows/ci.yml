@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # No usage telemetry from CI runs.
+  DAL_USAGE_DISABLED: "1"
+
+jobs:
+  web:
+    name: Web app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: End-to-end with the real models
+        timeout-minutes: 20
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y espeak-ng
+          python3 scripts/make-test-wav.py noisy.wav
+          espeak-ng -v en-us -s 140 -w speech.wav "Hello world. This is a test of the transcription and the subtitles."
+          node scripts/e2e.mjs noisy.wav speech.wav
+      - uses: actions/upload-artifact@v5
+        with:
+          name: onda-web
+          path: dist

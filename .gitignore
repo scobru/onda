@@ -1,0 +1,6 @@
+node_modules/
+dist/
+public/litert/
+*.wav
+.DS_Store
+.vercel/
