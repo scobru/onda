@@ -2,5 +2,6 @@ node_modules/
 dist/
 public/litert/
 *.wav
+*.webm
 .DS_Store
 .vercel/
