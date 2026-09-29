@@ -1,7 +1,7 @@
 // node --test --experimental-strip-types scripts/subtitles.test.mjs
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { joinWords, splitLines, toCues, toSrt, toText, toVtt } from "../src/subtitles.ts";
+import { cuesToText, joinWords, splitLines, toCues, toSrt, toText, toVtt } from "../src/subtitles.ts";
 
 const w = (text, start, end) => ({ text, start, end });
 
@@ -49,4 +49,13 @@ test("SRT and VTT timestamps", () => {
 test("plain text breaks paragraphs at long pauses", () => {
   const text = toText([w("One", 0, 0.3), w("two.", 0.4, 0.7), w("Three", 3, 3.3)]);
   assert.equal(text, "One two.\n\nThree\n");
+});
+
+test("edited cues become paragraphs of text", () => {
+  const cues = [
+    { start: 0, end: 1, lines: ["Uno due", "tre."] },
+    { start: 1.1, end: 2, lines: ["Quattro."] },
+    { start: 5, end: 6, lines: ["Dopo la pausa."] },
+  ];
+  assert.equal(cuesToText(cues), "Uno due tre. Quattro.\n\nDopo la pausa.\n");
 });

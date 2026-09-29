@@ -101,3 +101,13 @@ export function toText(words: readonly Word[], paragraphPause = 1.5): string {
   });
   return paragraphs.map((p) => joinWords(p)).filter(Boolean).join("\n\n") + "\n";
 }
+
+/** Text from (possibly edited) cues: one paragraph per stretch of speech. */
+export function cuesToText(cues: readonly Cue[], paragraphPause = 1.5): string {
+  const paragraphs: string[][] = [];
+  cues.forEach((cue, i) => {
+    if (i === 0 || cue.start - cues[i - 1].end >= paragraphPause) paragraphs.push([]);
+    paragraphs[paragraphs.length - 1].push(cue.lines.join(" "));
+  });
+  return paragraphs.map((p) => p.join(" ")).filter(Boolean).join("\n\n") + "\n";
+}

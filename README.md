@@ -2,32 +2,31 @@
 
 <h1 align="center">Onda</h1>
 
-<p align="center"><b>Voice, text and subtitles</b>: clean up, transcribe and subtitle recordings in the browser, entirely on your device.</p>
+<p align="center"><b>Subtitles and transcripts for video and audio</b>, in the browser and without the cloud.</p>
 
-<p align="center"><img src="assets/screenshot-web.png" width="640" alt="Onda in the browser"></p>
+<p align="center"><img src="assets/screenshot-web.png" width="720" alt="Onda: a video with its subtitles and the subtitle editor"></p>
 
-Onda is a suite of voice tools built on the small on-device models from
-[Desert Ant Labs](https://desertant.com). Nothing is uploaded: the models run in
-your browser and are downloaded once from Hugging Face.
+Drop a video (or an audio file), and Onda writes its subtitles: you watch them
+over the video, fix them in place and export them. Everything runs on your
+device with small models from [Desert Ant Labs](https://desertant.com); nothing
+is uploaded.
 
-| Tool | Model | What it does |
+| Step | Model | What it does |
 |---|---|---|
-| <img src="assets/soap-logo.svg" width="20" alt=""> **Soap** | [Clear](https://desertant.com/models/clear/) | Denoise, dereverb and loudness normalization |
-| <img src="assets/onda-logo.svg" width="20" alt=""> **Transcript & subtitles** | [Voz](https://desertant.com/models/voz/) | Transcript with word timestamps in 25 languages, SRT/VTT/TXT export |
-
-Soap is also a VST3/AU/CLAP plugin and a desktop app for Windows, macOS and
-Linux: see [scobru/soap](https://github.com/scobru/soap).
+| Language | [Ear](https://desertant.com/models/ear/) | Recognizes the spoken language (99 languages) and stops before a transcript Voz can't do |
+| Clean-up (optional) | [Clear](https://desertant.com/models/clear/) | Removes noise and reverb before transcribing, as in [Soap](https://github.com/scobru/soap) |
+| Transcript | [Voz](https://desertant.com/models/voz/) | Speech to text with word timestamps, 25 European languages |
 
 ## Use it
 
-One page runs the whole flow:
-
-1. **Source**: load any file the browser can decode, or record from the mic with the browser's DSP turned off.
-2. **Clean up with Soap**: strength, LUFS target (Podcast −19, Streaming −14, EBU R128 −23, custom, off), true-peak ceiling, max gain, mono or stereo, 48/44.1 kHz, CPU or WebGPU.
-3. **Compare**: waveforms, click-to-seek, A/B switching (`A`/`B` keys) that keeps the position; export WAV as 16-bit PCM or 32-bit float.
-4. **Transcript and subtitles**: transcribe the clean (or original) version with Voz.
-   - Every word is clickable and moves the player there, and the word being spoken is highlighted during playback.
-   - Export SRT and WebVTT cues of at most two 42-character lines and 6 seconds, split at pauses and sentence ends ([`src/subtitles.ts`](src/subtitles.ts)), plus plain text in paragraphs.
+1. **Load** a video (MP4, MOV, WebM, MKV, …) or an audio file, or record from the microphone. Audio files play over an "audiogram" card.
+2. **Create subtitles**: Ear names the language, Clear optionally cleans the voice, Voz transcribes.
+   - If Ear hears a language Voz doesn't cover (Japanese, for example), Onda says so and waits: *Transcribe anyway* goes ahead.
+3. **Watch and fix**:
+   - The current subtitle is drawn over the video, and the list highlights it.
+   - Click a time to jump there, and type straight into any subtitle.
+   - Lines are at most 42 characters, or 32 for vertical social videos, two per subtitle.
+4. **Export** SRT, WebVTT or plain text. Exports always include your edits.
 
 The interface is in Italian and English; it follows the browser language and has a switch.
 
@@ -40,7 +39,8 @@ npm test         # subtitle cues and SRT/VTT/TXT
 npm run build    # static site in dist/
 ```
 
-- **Clear** runs on LiteRT.js (WebAssembly, or WebGPU on request). The runtime is served from your own origin (`scripts/copy-litert.mjs`). For its multi-threaded build the host must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` (the Vite servers and `vercel.json` do).
+- The audio is decoded once at 16 kHz mono (what Ear and Voz listen at), so long videos stay light in memory; the video itself plays from the original file.
+- **Ear** and **Clear** run on LiteRT.js (WebAssembly, or WebGPU on request). The runtime is served from your own origin (`scripts/copy-litert.mjs`). For its multi-threaded build the host must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` (the Vite servers and `vercel.json` do).
 - **Voz** runs on ONNX Runtime Web: WebGPU for the encoder, WebNN for the decode step where the browser has it, and the CPU on a machine without a usable GPU. ONNX Runtime is bundled by Vite and loaded only when you transcribe.
 - **Model downloads**: Clear's weights and Voz's bundle (about 390 MB) come from Hugging Face on first use and stay in the browser's cache. `VITE_CLEAR_MODEL_BASE_URL` and `VITE_VOZ_MODEL_BASE_URL` serve them from elsewhere.
 - **Voz's limits**: it doesn't detect the language it hears, and its accuracy varies by language. Italian is about 3% word error rate; see the [model card](https://huggingface.co/desert-ant-labs/voz).
@@ -50,13 +50,13 @@ npm run build    # static site in dist/
 `.github/workflows/ci.yml` runs the unit tests and the build, then drives the
 production build in headless Chromium with the real models:
 
-- a noisy file is cleaned by Clear;
-- a spoken sentence synthesized with espeak-ng is cleaned, then transcribed by Voz;
-- the test checks the recognized words and the SRT.
+- it makes a WebM video from a test pattern and an English sentence synthesized with espeak-ng;
+- Ear must recognize English, Clear cleans the voice, Voz transcribes;
+- the test checks the words, edits a subtitle, and checks that the SRT and the caption follow.
 
 ## Licenses
 
-- **Clear** and **Voz** (models and SDKs) are under the [Desert Ant Labs Source-Available License](https://license.desertant.com/1.0). It's not an OSI open-source license:
+- **Ear**, **Clear** and **Voz** (models and SDKs) are under the [Desert Ant Labs Source-Available License](https://license.desertant.com/1.0). It's not an OSI open-source license:
   - Free up to 100,000 monthly active devices per platform, per model.
   - Desert Ant Labs must be credited (the page does).
   - You may not use the models or their outputs to train competing models.
