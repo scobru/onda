@@ -13,6 +13,7 @@
   --accent-fg: #ffffff;
   --wave-dim: #c5c0ea;
   --wave-axis: #e1def5;
+  --cut: rgb(255 127 138 / 0.28);
   --ok: #2aa889;
   --warn: #d9912f;
   --danger: #d9475a;
@@ -36,6 +37,7 @@
     --accent-fg: #15142b;
     --wave-dim: #4a4680;
     --wave-axis: #2e2b55;
+    --cut: rgb(255 143 150 / 0.3);
     --ok: #5fd3b3;
     --warn: #f0b46a;
     --danger: #ff8f96;
@@ -95,8 +97,9 @@ h2 { margin: 0 0 14px; font-size: 0.8rem; text-transform: uppercase; letter-spac
   gap: 18px;
   align-items: start;
 }
+.stage-panel { grid-row: span 2; }
 .cues-panel { grid-column: 1 / -1; }
-@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } .stage-panel { grid-row: auto; } }
 
 .panel {
   background: var(--panel);
@@ -175,6 +178,11 @@ select, textarea {
 }
 select:disabled { opacity: 0.5; }
 
+.field label.split { display: flex; justify-content: space-between; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.check + .check { margin-top: 10px; }
+.cut-stats { margin: 14px 0; font-weight: 800; }
+#dl-cut { margin-top: 10px; }
 .check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.95rem; }
 .check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
 .check small { display: block; color: var(--muted); font-size: 0.8rem; }

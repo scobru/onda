@@ -1,6 +1,8 @@
 export class Waveform {
   private peaks: Float32Array | null = null;
   private progress = 0;
+  /** Parts shaded as cut, as [start, end] fractions of the length. */
+  private cuts: [number, number][] = [];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -17,6 +19,11 @@ export class Waveform {
   setAudio(channels: Float32Array[] | null) {
     this.peaks = channels ? computePeaks(channels, 2000) : null;
     this.progress = 0;
+    this.draw();
+  }
+
+  setCuts(cuts: [number, number][]) {
+    this.cuts = cuts;
     this.draw();
   }
 
@@ -55,6 +62,10 @@ export class Waveform {
       const top = mid - max * mid * 0.95;
       const bottom = mid - min * mid * 0.95;
       ctx.fillRect(x, top, 1, Math.max(dpr, bottom - top));
+    }
+    if (this.cuts.length) {
+      ctx.fillStyle = styles.getPropertyValue("--cut");
+      for (const [a, b] of this.cuts) ctx.fillRect(Math.floor(a * width), 0, Math.max(dpr, Math.ceil((b - a) * width)), height);
     }
     if (this.progress > 0) {
       ctx.fillStyle = styles.getPropertyValue("--fg");

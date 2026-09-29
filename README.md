@@ -16,6 +16,7 @@ is uploaded.
 | Language | [Ear](https://desertant.com/models/ear/) | Recognizes the spoken language (99 languages) and stops before a transcript Voz can't do |
 | Clean-up (optional) | [Clear](https://desertant.com/models/clear/) | Removes noise and reverb before transcribing, as in [Soap](https://github.com/scobru/soap) |
 | Transcript | [Voz](https://desertant.com/models/voz/) | Speech to text with word timestamps, 25 European languages |
+| Jump cuts | Voz's timestamps | Cuts the pauses (and "uh", "um") out of the video, rendered in the browser |
 
 ## Use it
 
@@ -27,6 +28,12 @@ is uploaded.
    - Click a time to jump there, and type straight into any subtitle.
    - Lines are at most 42 characters, or 32 for vertical social videos, two per subtitle.
 4. **Export** SRT, WebVTT or plain text. Exports always include your edits.
+5. **Cut the pauses**:
+   - Silences longer than a threshold (0.3–2 s, 0.7 s by default) are cut, with a little air left around the speech.
+   - Filler words can go too, when Voz has transcribed them.
+   - The preview skips the cuts, which are marked on the timeline.
+   - *Download the video without pauses* renders the edit in the browser (WebCodecs, via [Mediabunny](https://mediabunny.dev)): MP4 with H.264/AAC where the browser can encode them, otherwise VP9/Opus.
+   - The SRT/VTT exports can follow the cut timing, so the subtitles match the new video.
 
 The interface is in Italian and English; it follows the browser language and has a switch.
 
@@ -52,7 +59,8 @@ production build in headless Chromium with the real models:
 
 - it makes a WebM video from a test pattern and an English sentence synthesized with espeak-ng;
 - Ear must recognize English, Clear cleans the voice, Voz transcribes;
-- the test checks the words, edits a subtitle, and checks that the SRT and the caption follow.
+- the test checks the words, edits a subtitle, and checks that the SRT and the caption follow;
+- the video has two seconds of silence between two sentences: the test cuts the pauses, renders the edit and checks the new video is shorter and still has a picture.
 
 ## Licenses
 

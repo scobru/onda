@@ -1,6 +1,7 @@
 // End-to-end check against the real models: serve the production build, load
 // a video with speech, clean it with Clear, identify the language with Ear,
-// transcribe it with Voz, then edit a subtitle and check the exports follow.
+// transcribe it with Voz, edit a subtitle and check the exports follow, then
+// cut the pauses and check the rendered video is shorter.
 // Usage: node scripts/e2e.mjs <video-with-speech> [expected-language]   (after `npm run build`)
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
@@ -59,6 +60,31 @@ try {
   await page.waitForFunction(() => !document.getElementById("caption").hidden, null, { timeout: 10_000 });
   console.log(`caption: ${await page.textContent("#caption")}`);
   console.log(`SRT:\n${srt.split("\n\n")[0]}`);
+
+  // Cut the pauses: the input has two seconds of silence between sentences.
+  await page.waitForSelector("#cut-panel:not([hidden])");
+  console.log(`cuts: ${await page.textContent("#cut-stats")}`);
+  if (await page.isDisabled("#render")) throw new Error("no pause was found to cut");
+  const before = await page.evaluate(() => document.getElementById("video").duration);
+  await page.click("#render");
+  await page.waitForFunction(
+    () => !document.getElementById("dl-cut").hidden || !document.getElementById("render-error").hidden,
+    null,
+    { timeout: 300_000 },
+  );
+  if (await page.isVisible("#render-error")) throw new Error(await page.textContent("#render-error"));
+  const [after, width] = await page.evaluate(async () => {
+    const v = document.createElement("video");
+    v.src = document.getElementById("dl-cut").href;
+    await new Promise((resolve, reject) => {
+      v.onloadedmetadata = resolve;
+      v.onerror = () => reject(new Error("the cut video does not load"));
+    });
+    return [v.duration, v.videoWidth];
+  });
+  console.log(`${await page.textContent("#render-status")}: ${before.toFixed(2)} s -> ${after.toFixed(2)} s, ${width} px wide`);
+  if (!(after < before - 1) || !(after > 1)) throw new Error(`the cut video lasts ${after} s (from ${before} s)`);
+  if (!width) throw new Error("the cut video has no picture");
 } finally {
   await browser.close();
   server.kill();

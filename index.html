@@ -98,6 +98,32 @@
         <small class="muted help" data-i18n="txHelp">Ear riconosce la lingua parlata, Voz trascrive 25 lingue europee (italiano e inglese compresi). Al primo uso scarica i modelli (circa 400 MB), poi restano in cache.</small>
       </section>
 
+      <section class="panel cut-panel" id="cut-panel" hidden>
+        <h2 data-i18n="sectionCut">Taglia le pause</h2>
+        <div class="field">
+          <label for="min-pause" class="split"><span data-i18n="labelMinPause">Taglia le pause più lunghe di</span> <output id="min-pause-out">0,7 s</output></label>
+          <input type="range" id="min-pause" min="0.3" max="2" step="0.1" value="0.7" />
+        </div>
+        <label class="check">
+          <input type="checkbox" id="cut-fillers" />
+          <span><span data-i18n="cutFillers">Togli anche ehm, uhm, hmm…</span><small data-i18n="cutFillersHelp">Quando Voz li ha trascritti.</small></span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="cut-preview" checked />
+          <span><span data-i18n="cutPreview">Anteprima senza pause</span><small data-i18n="cutPreviewHelp">Il player salta le parti tagliate, segnate sulla timeline.</small></span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="cut-subs" checked />
+          <span><span data-i18n="cutSubs">Sottotitoli per la versione senza pause</span><small data-i18n="cutSubsHelp">Gli export SRT/VTT seguono i tempi del video tagliato.</small></span>
+        </label>
+        <p class="cut-stats" id="cut-stats"></p>
+        <button id="render" class="primary big" type="button" data-i18n="renderVideo">Scarica il video senza pause</button>
+        <div class="progress" id="render-progress" hidden><div class="bar" id="render-bar"></div></div>
+        <p id="render-status" class="muted" hidden></p>
+        <p id="render-error" class="error" role="alert" hidden></p>
+        <a id="dl-cut" class="secondary link" hidden data-i18n="downloadAgain">Scarica di nuovo</a>
+      </section>
+
       <section class="panel cues-panel" id="cues-panel" hidden>
         <div class="cues-head">
           <h2 data-i18n="sectionCues">Sottotitoli</h2>
