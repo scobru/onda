@@ -7,6 +7,7 @@ import { applyLanguage, getCurrentLanguage, languageName, onLanguageChange, setL
 import { keepSegments, keptDuration, retimeCues, segmentAt, type Segment } from "./cuts";
 import { renderCut } from "./render";
 import { cuesToText, toCues, toSrt, toVtt, type Cue, type Word } from "./subtitles";
+import { initThemeToggle } from "./theme";
 import { Waveform } from "./waveform";
 
 /** The rate Ear and Voz listen at; decoding straight to it keeps memory low. */
@@ -423,6 +424,7 @@ const timeline = new Waveform(
     if (ui.video.duration) ui.video.currentTime = fraction * ui.video.duration;
   },
 );
+initThemeToggle($<HTMLButtonElement>("theme-toggle"), () => timeline.draw());
 
 ui.play.addEventListener("click", () => (ui.video.paused ? void ui.video.play() : ui.video.pause()));
 ui.screen.addEventListener("click", (e) => {

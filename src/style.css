@@ -25,7 +25,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #15142b;
     --bg-2: #0e0d1f;
     --panel: rgb(31 29 60 / 0.86);
@@ -44,6 +44,26 @@
     --shadow: 0 6px 24px rgb(0 0 0 / 0.35);
     color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #15142b;
+  --bg-2: #0e0d1f;
+  --panel: rgb(31 29 60 / 0.86);
+  --fg: #ecebff;
+  --muted: #a3a0c8;
+  --line: #2e2b55;
+  --track: #25234a;
+  --accent: #a597ff;
+  --accent-fg: #15142b;
+  --wave-dim: #4a4680;
+  --wave-axis: #2e2b55;
+  --cut: rgb(255 143 150 / 0.3);
+  --ok: #5fd3b3;
+  --warn: #f0b46a;
+  --danger: #ff8f96;
+  --shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -267,3 +287,7 @@ button:focus-visible, .link:focus-visible, .drop:focus-within { outline: 3px sol
 .foot-links { display: flex; gap: 10px; flex-wrap: wrap; }
 .foot-link { display: inline-flex; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; text-decoration: none !important; }
 .foot-credits { font-size: 0.78rem; line-height: 1.5; }
+
+.theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--fg); cursor: pointer; transition: transform 0.1s, border-color 0.15s, color 0.15s; }
+.theme-btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.theme-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
