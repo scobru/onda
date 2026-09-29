@@ -57,10 +57,14 @@ const ui = {
   cutPanel: $("cut-panel"),
   minPause: $<HTMLInputElement>("min-pause"),
   minPauseOut: $<HTMLOutputElement>("min-pause-out"),
+  cutOn: $<HTMLInputElement>("cut-on"),
+  cutOptions: $("cut-options"),
   cutFillers: $<HTMLInputElement>("cut-fillers"),
   cutPreview: $<HTMLInputElement>("cut-preview"),
   cutSubs: $<HTMLInputElement>("cut-subs"),
   cutStats: $("cut-stats"),
+  burnRow: $("burn-row"),
+  burnSubs: $<HTMLInputElement>("burn-subs"),
   render: $<HTMLButtonElement>("render"),
   renderProgress: $("render-progress"),
   renderBar: $("render-bar"),
@@ -189,6 +193,8 @@ ui.video.addEventListener("loadedmetadata", () => {
   ui.screen.classList.toggle("audio-only", !isVideo);
   ui.audiogram.hidden = isVideo;
   ui.render.textContent = isVideo ? t("renderVideo") : t("renderAudio");
+  ui.burnRow.hidden = !isVideo;
+  refresh();
 });
 
 ui.file.addEventListener("change", () => {
@@ -483,7 +489,12 @@ function updateCaption(force: boolean) {
 // --- Cutting the pauses ----------------------------------------------------------
 
 function hasCuts() {
-  return !!segments && !!media && keptDuration(segments) < media.samples.length / RATE - 0.05;
+  return ui.cutOn.checked && !!segments && !!media && keptDuration(segments) < media.samples.length / RATE - 0.05;
+}
+
+/** Captions go into the picture: only a video has one. */
+function burning() {
+  return isVideo && ui.burnSubs.checked && cues.length > 0;
 }
 
 function updateCuts() {
@@ -501,7 +512,8 @@ function updateCuts() {
     at = s.end;
   }
   if (duration - at > 0.01) removed.push([at / duration, 1]);
-  timeline.setCuts(ui.cutPreview.checked ? removed : []);
+  ui.cutOptions.hidden = !ui.cutOn.checked;
+  timeline.setCuts(ui.cutOn.checked && ui.cutPreview.checked ? removed : []);
 
   const kept = keptDuration(segments);
   ui.cutStats.textContent = removed.length
@@ -524,7 +536,8 @@ function skipCuts() {
   }
 }
 
-for (const input of [ui.minPause, ui.cutFillers, ui.cutPreview]) input.addEventListener("input", updateCuts);
+for (const input of [ui.cutOn, ui.minPause, ui.cutFillers, ui.cutPreview]) input.addEventListener("input", updateCuts);
+ui.burnSubs.addEventListener("change", refresh);
 ui.cutSubs.addEventListener("change", updateExports);
 
 ui.render.addEventListener("click", async () => {
@@ -540,10 +553,18 @@ ui.render.addEventListener("click", async () => {
   };
   show(0);
   try {
-    const { blob, extension } = await renderCut(media.blob, segments, show);
+    const cut = hasCuts();
+    const burn = burning();
+    const length = Math.max(media.samples.length / RATE, Number.isFinite(ui.video.duration) ? ui.video.duration : 0);
+    const keep = cut ? segments : [{ start: 0, end: length }];
+    // A snapshot of the cues as they are now, edits included.
+    const shown = cues.map((c) => ({ start: c.start, end: c.end, lines: [...c.lines] }));
+    const captionAt = (time: number) => shown.find((c) => time >= c.start && time < c.end)?.lines ?? null;
+    const { blob, extension } = await renderCut(media.blob, keep, show, burn ? { captionAt } : {});
     if (renderUrl) URL.revokeObjectURL(renderUrl);
     renderUrl = URL.createObjectURL(blob);
-    const name = `${media.name.replace(/\.[^.]+$/, "")}-${t("cutSuffix")}.${extension}`;
+    const suffix = [cut && t("cutSuffix"), burn && t("subsSuffix")].filter(Boolean).join("-");
+    const name = `${media.name.replace(/\.[^.]+$/, "")}-${suffix}.${extension}`;
     ui.dlCut.href = renderUrl;
     ui.dlCut.download = name;
     ui.dlCut.hidden = false;
@@ -569,7 +590,7 @@ function refresh() {
   ui.replace.disabled = busy;
   ui.clean.disabled = busy;
   ui.recordRow.hidden = !!media;
-  ui.render.disabled = !segments || !hasCuts() || rendering || busy;
+  ui.render.disabled = !segments || !(hasCuts() || burning()) || rendering || busy;
   ui.replace.disabled = busy || rendering;
 }
 

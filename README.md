@@ -9,8 +9,8 @@
 <p align="center"><img src="assets/screenshot-web.png" width="720" alt="Onda: a video with its live caption, the cut pauses shaded on the timeline, and the pause cutter"></p>
 
 Drop a video (or an audio file), and Onda writes its subtitles: you watch them
-over the video, fix them in place and export them. It can also cut the pauses
-out and give you back a tighter video. Everything runs on your device with
+over the video, fix them in place and export them, as files or burned into
+the video. It can also cut the pauses out and give you back a tighter video. Everything runs on your device with
 small models from [Desert Ant Labs](https://desertant.com); nothing is
 uploaded.
 
@@ -20,6 +20,7 @@ uploaded.
 | Clean-up (optional) | [Clear](https://desertant.com/models/clear/) | Removes noise and reverb before transcribing, as in [Soap](https://github.com/scobru/soap) |
 | Transcript | [Voz](https://desertant.com/models/voz/) | Speech to text with word timestamps, 25 European languages |
 | Jump cuts | Voz's timestamps | Cuts the pauses (and "uh", "um") out of the video, rendered in the browser |
+| Burned-in subtitles | Your edited subtitles | Paints them into the picture of the exported video |
 
 ## Use it
 
@@ -31,12 +32,15 @@ uploaded.
    - Click a time to jump there, and type straight into any subtitle.
    - Lines are at most 42 characters, or 32 for vertical social videos, two per subtitle.
 4. **Export** SRT, WebVTT or plain text. Exports always include your edits.
-5. **Cut the pauses**:
-   - Silences longer than a threshold (0.3–2 s, 0.7 s by default) are cut, with a little air left around the speech.
-   - Filler words can go too, when Voz has transcribed them.
-   - The preview skips the cuts, which are marked on the timeline.
-   - *Download the video without pauses* renders the edit in the browser (WebCodecs, via [Mediabunny](https://mediabunny.dev)): MP4 with H.264/AAC where the browser can encode them, otherwise VP9/Opus.
-   - The SRT/VTT exports can follow the cut timing, so the subtitles match the new video.
+5. **Export the video**, with either or both of:
+   - **Cut the pauses**:
+     - Silences longer than a threshold (0.3–2 s, 0.7 s by default) are cut, with a little air left around the speech.
+     - Filler words can go too, when Voz has transcribed them.
+     - The preview skips the cuts, which are marked on the timeline.
+     - The SRT/VTT exports can follow the cut timing, so the subtitles match the new video.
+   - **Subtitles burned into the video**: each frame is drawn with the current subtitle on it, in the same style as the caption over the player. They show everywhere, including where you can't upload an SRT file.
+
+   *Download the video* renders the result in the browser (WebCodecs, via [Mediabunny](https://mediabunny.dev)): MP4 with H.264/AAC where the browser can encode them, otherwise VP9/Opus.
 
 The interface is in Italian and English; it follows the browser language and has a switch.
 
@@ -71,7 +75,8 @@ npm run build    # static site in dist/
 | `src/main.ts` | The page: loading and decoding, the player and live caption, models, subtitle editor, pause cutter |
 | `src/subtitles.ts` | Words → subtitle cues (line length, pauses, sentence ends) and SRT/VTT/TXT |
 | `src/cuts.ts` | Pauses and filler words → segments to keep, time mapping and subtitle retiming |
-| `src/render.ts` | Renders the cut edit with Mediabunny + WebCodecs |
+| `src/render.ts` | Renders the edit with Mediabunny + WebCodecs |
+| `src/burn.ts` | Paints the subtitles into the frames when they are burned in |
 | `src/waveform.ts` | The timeline: waveform, playhead, shaded cuts |
 | `src/i18n.ts` | Italian and English strings |
 | `scripts/*.test.mjs` | Unit tests (`npm test`) |
@@ -92,7 +97,8 @@ production build in headless Chromium with the real models:
 - it makes a WebM video from a test pattern and an English sentence synthesized with espeak-ng;
 - Ear must recognize English, Clear cleans the voice, Voz transcribes;
 - the test checks the words, edits a subtitle, and checks that the SRT and the caption follow;
-- the video has two seconds of silence between two sentences: the test cuts the pauses, renders the edit and checks the new video is shorter and still has a picture.
+- the video has two seconds of silence between two sentences: the test cuts the pauses, renders the edit and checks the new video is shorter and still has a picture;
+- it renders the cut again without burned-in subtitles and checks that only the bottom of the picture, where the subtitle sits, differs.
 
 ## Licenses
 

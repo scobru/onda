@@ -106,11 +106,16 @@
         <div class="progress" id="progress" hidden><div class="bar" id="progress-bar"></div></div>
         <p id="status" class="muted" hidden></p>
         <p id="error" class="error" role="alert" hidden></p>
-        <small class="muted help" data-i18n="txHelp">Ear riconosce la lingua parlata, Voz trascrive 25 lingue europee (italiano e inglese compresi). Al primo uso scarica i modelli (circa 400 MB), poi restano in cache. Dopo la trascrizione compare il pannello per tagliare le pause.</small>
+        <small class="muted help" data-i18n="txHelp">Ear riconosce la lingua parlata, Voz trascrive 25 lingue europee (italiano e inglese compresi). Al primo uso scarica i modelli (circa 400 MB), poi restano in cache. Dopo la trascrizione puoi tagliare le pause ed esportare il video con i sottotitoli sopra.</small>
       </section>
 
       <section class="panel cut-panel" id="cut-panel" hidden>
-        <h2 data-i18n="sectionCut">Taglia le pause</h2>
+        <h2 data-i18n="sectionCut">Esporta il video</h2>
+        <label class="check">
+          <input type="checkbox" id="cut-on" checked />
+          <span><span data-i18n="cutOn">Taglia le pause</span><small data-i18n="cutOnHelp">Salta i silenzi tra una frase e l'altra, come un montaggio a stacchi.</small></span>
+        </label>
+        <div class="cut-options" id="cut-options">
         <div class="field">
           <label for="min-pause" class="split"><span data-i18n="labelMinPause">Taglia le pause più lunghe di</span> <output id="min-pause-out">0,7 s</output></label>
           <input type="range" id="min-pause" min="0.3" max="2" step="0.1" value="0.7" />
@@ -128,7 +133,12 @@
           <span><span data-i18n="cutSubs">Sottotitoli per la versione senza pause</span><small data-i18n="cutSubsHelp">Gli export SRT/VTT seguono i tempi del video tagliato.</small></span>
         </label>
         <p class="cut-stats" id="cut-stats"></p>
-        <button id="render" class="primary big" type="button" data-i18n="renderVideo">Scarica il video senza pause</button>
+        </div>
+        <label class="check" id="burn-row">
+          <input type="checkbox" id="burn-subs" checked />
+          <span><span data-i18n="burnSubs">Sottotitoli impressi nel video</span><small data-i18n="burnSubsHelp">Scritti sopra le immagini come nell'anteprima: si vedono ovunque, anche dove non puoi caricare un file SRT.</small></span>
+        </label>
+        <button id="render" class="primary big" type="button" data-i18n="renderVideo">Scarica il video</button>
         <div class="progress" id="render-progress" hidden><div class="bar" id="render-bar"></div></div>
         <p id="render-status" class="muted" hidden></p>
         <p id="render-error" class="error" role="alert" hidden></p>
