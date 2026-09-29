@@ -1,7 +1,8 @@
 // End-to-end check against the real models: serve the production build, load
 // a video with speech, clean it with Clear, identify the language with Ear,
 // transcribe it with Voz, edit a subtitle and check the exports follow, then
-// cut the pauses and check the rendered video is shorter.
+// cut the pauses and check the rendered video is shorter and carries the
+// subtitles in the picture.
 // Usage: node scripts/e2e.mjs <video-with-speech> [expected-language]   (after `npm run build`)
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
@@ -85,6 +86,59 @@ try {
   console.log(`${await page.textContent("#render-status")}: ${before.toFixed(2)} s -> ${after.toFixed(2)} s, ${width} px wide`);
   if (!(after < before - 1) || !(after > 1)) throw new Error(`the cut video lasts ${after} s (from ${before} s)`);
   if (!width) throw new Error("the cut video has no picture");
+
+  // Burned-in subtitles: render again without them and compare the bottom of
+  // the picture halfway through the first (edited) subtitle of the cut video.
+  const firstCue = await page.evaluate(async () => {
+    const srt = await (await fetch(document.getElementById("dl-srt").href)).text();
+    const [a, b] = srt.split("\n")[1].split(" --> ").map((t) => {
+      const [h, m, rest] = t.split(":");
+      return Number(h) * 3600 + Number(m) * 60 + Number(rest.replace(",", "."));
+    });
+    return (a + b) / 2;
+  });
+  await page.evaluate(async () => {
+    window.__burned = await (await fetch(document.getElementById("dl-cut").href)).blob();
+  });
+  await page.uncheck("#burn-subs");
+  await page.click("#render");
+  await page.waitForFunction(() => document.getElementById("render-status").textContent.startsWith("Ready"), null, {
+    timeout: 300_000,
+  });
+  if (await page.isVisible("#render-error")) throw new Error(await page.textContent("#render-error"));
+  const diff = await page.evaluate(async (time) => {
+    const plain = await (await fetch(document.getElementById("dl-cut").href)).blob();
+    const frame = async (blob) => {
+      const v = document.createElement("video");
+      v.muted = true;
+      v.src = URL.createObjectURL(blob);
+      await new Promise((resolve) => (v.onloadeddata = resolve));
+      v.currentTime = time;
+      await new Promise((resolve) => (v.onseeked = resolve));
+      const c = document.createElement("canvas");
+      c.width = v.videoWidth;
+      c.height = v.videoHeight;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(v, 0, 0);
+      return ctx.getImageData(0, 0, c.width, c.height);
+    };
+    const [a, b] = [await frame(window.__burned), await frame(plain)];
+    const mean = (y0, y1) => {
+      let sum = 0;
+      let n = 0;
+      for (let y = Math.floor(a.height * y0); y < a.height * y1; y++) {
+        for (let x = Math.floor(a.width * 0.15); x < a.width * 0.85; x++) {
+          const i = (y * a.width + x) * 4;
+          sum += Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2]);
+          n += 3;
+        }
+      }
+      return sum / n;
+    };
+    return { caption: mean(0.75, 0.93), top: mean(0.05, 0.4) };
+  }, firstCue);
+  console.log(`burned subtitles at ${firstCue.toFixed(2)} s: caption area differs by ${diff.caption.toFixed(1)}, top by ${diff.top.toFixed(1)}`);
+  if (!(diff.caption > 15 && diff.caption > diff.top * 3)) throw new Error("the subtitles are not in the picture");
 } finally {
   await browser.close();
   server.kill();

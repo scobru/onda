@@ -204,6 +204,8 @@ select:disabled { opacity: 0.5; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 .check + .check { margin-top: 10px; }
 .cut-stats { margin: 14px 0; font-weight: 800; }
+.cut-options { margin: 4px 0 0 28px; }
+#burn-row { margin: 14px 0 18px; }
 #dl-cut { margin-top: 10px; }
 .check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 0.95rem; }
 .check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
