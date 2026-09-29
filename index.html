@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Onda: sottotitoli e trascrizioni per video e audio, nel browser e senza cloud." />
+    <meta name="description" content="Onda: sottotitoli, trascrizioni e tagli delle pause per video e audio, nel browser e senza cloud." />
     <meta name="theme-color" content="#f5f4ff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15142b" media="(prefers-color-scheme: dark)" />
     <title>Onda: sottotitoli per video e audio</title>
@@ -24,7 +24,7 @@
             <h1>Onda</h1>
             <a href="https://scobrudot.dev" target="_blank" rel="noopener" class="dev-badge" title="Francesco Bruno (scobru)">by <span>scobru</span></a>
           </div>
-          <p class="sub" data-i18n="brandSubtitle">Sottotitoli e trascrizioni per video e audio. Niente cloud: tutto resta sul tuo dispositivo.</p>
+          <p class="sub" data-i18n="brandSubtitle">Sottotitoli, trascrizioni e tagli delle pause per video e audio. Niente cloud: tutto resta sul tuo dispositivo.</p>
         </div>
       </div>
       <div class="top-actions">
@@ -45,6 +45,12 @@
           <input type="file" id="file" accept="video/*,audio/*" hidden />
           <strong data-i18n="dropTitle">Trascina qui un video o un audio</strong>
           <span data-i18n="dropSubtitle">oppure clicca per sceglierlo (MP4, MOV, WebM, MKV, MP3, WAV, M4A…)</span>
+          <ul class="features">
+            <li data-i18n="featSubs">💬 Sottotitoli SRT/VTT modificabili</li>
+            <li data-i18n="featCut">✂️ Taglia le pause e gli ehm dal video</li>
+            <li data-i18n="featLang">🌍 Riconosce la lingua parlata</li>
+            <li data-i18n="featClean">🧼 Pulizia della voce con Soap</li>
+          </ul>
         </label>
 
         <div class="stage" id="stage" hidden>
@@ -95,7 +101,7 @@
         <div class="progress" id="progress" hidden><div class="bar" id="progress-bar"></div></div>
         <p id="status" class="muted" hidden></p>
         <p id="error" class="error" role="alert" hidden></p>
-        <small class="muted help" data-i18n="txHelp">Ear riconosce la lingua parlata, Voz trascrive 25 lingue europee (italiano e inglese compresi). Al primo uso scarica i modelli (circa 400 MB), poi restano in cache.</small>
+        <small class="muted help" data-i18n="txHelp">Ear riconosce la lingua parlata, Voz trascrive 25 lingue europee (italiano e inglese compresi). Al primo uso scarica i modelli (circa 400 MB), poi restano in cache. Dopo la trascrizione compare il pannello per tagliare le pause.</small>
       </section>
 
       <section class="panel cut-panel" id="cut-panel" hidden>

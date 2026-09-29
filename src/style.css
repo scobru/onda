@@ -124,6 +124,8 @@ h2 { margin: 0 0 14px; font-size: 0.8rem; text-transform: uppercase; letter-spac
 }
 .drop strong { font-size: 1.15rem; }
 .drop span { color: var(--muted); font-size: 0.9rem; }
+.features { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 18px 0 0; padding: 0; }
+.features li { padding: 6px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 0.85rem; font-weight: 600; }
 .drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); transform: scale(1.005); }
 
 /* The player: the video (or a card for audio) with the live caption on top. */
