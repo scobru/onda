@@ -10,6 +10,7 @@ const it = {
   featCut: "✂️ Taglia le pause e gli ehm dal video",
   featLang: "🌍 Riconosce la lingua parlata",
   featClean: "🧼 Pulizia della voce con Soap",
+  themeToggle: "Tema chiaro o scuro",
   recordMic: "● Registra dal microfono",
   recordStop: "■ Ferma registrazione",
   recordPrefix: "registrazione",
@@ -84,6 +85,7 @@ const en: Translations = {
   featCut: "✂️ Cut the pauses and the ums out of the video",
   featLang: "🌍 Recognizes the spoken language",
   featClean: "🧼 Voice cleanup with Soap",
+  themeToggle: "Light or dark theme",
   recordMic: "● Record from the microphone",
   recordStop: "■ Stop recording",
   recordPrefix: "recording",
@@ -198,6 +200,13 @@ export function applyLanguage(lang: Language) {
   document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
     const val = dict[lang][el.dataset.i18n as keyof Translations];
     if (typeof val === "string") el.textContent = val;
+  });
+  document.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((el) => {
+    const val = dict[lang][el.dataset.i18nTitle as keyof Translations];
+    if (typeof val === "string") {
+      el.title = val;
+      el.setAttribute("aria-label", val);
+    }
   });
   document.querySelectorAll<HTMLElement>("[data-i18n-html]").forEach((el) => {
     const val = dict[lang][el.dataset.i18nHtml as keyof Translations];
