@@ -4,6 +4,8 @@ import type { Clear } from "@desert-ant-labs/clear";
 import type { Ear, Detection } from "@desert-ant-labs/ear";
 import type { Voz } from "@desert-ant-labs/voz";
 import { applyLanguage, getCurrentLanguage, languageName, onLanguageChange, setLanguage, t } from "./i18n";
+import { keepSegments, keptDuration, retimeCues, segmentAt, type Segment } from "./cuts";
+import { renderCut } from "./render";
 import { cuesToText, toCues, toSrt, toVtt, type Cue, type Word } from "./subtitles";
 import { Waveform } from "./waveform";
 
@@ -51,9 +53,22 @@ const ui = {
   dlSrt: $<HTMLAnchorElement>("dl-srt"),
   dlVtt: $<HTMLAnchorElement>("dl-vtt"),
   dlTxt: $<HTMLAnchorElement>("dl-txt"),
+  cutPanel: $("cut-panel"),
+  minPause: $<HTMLInputElement>("min-pause"),
+  minPauseOut: $<HTMLOutputElement>("min-pause-out"),
+  cutFillers: $<HTMLInputElement>("cut-fillers"),
+  cutPreview: $<HTMLInputElement>("cut-preview"),
+  cutSubs: $<HTMLInputElement>("cut-subs"),
+  cutStats: $("cut-stats"),
+  render: $<HTMLButtonElement>("render"),
+  renderProgress: $("render-progress"),
+  renderBar: $("render-bar"),
+  renderStatus: $("render-status"),
+  renderError: $("render-error"),
+  dlCut: $<HTMLAnchorElement>("dl-cut"),
 };
 
-type Media = { name: string; url: string; samples: Float32Array };
+type Media = { name: string; url: string; blob: Blob; samples: Float32Array };
 
 let media: Media | null = null;
 let busy = false;
@@ -65,6 +80,11 @@ let cues: Cue[] = [];
 let edited = false;
 let realtimeFactor = 0;
 let activeCue = -1;
+/** What the cut edit keeps; null until there is a transcript. */
+let segments: Segment[] | null = null;
+let rendering = false;
+let renderUrl: string | null = null;
+let isVideo = true;
 
 // --- Models, each loaded on first use and kept -------------------------------
 
@@ -149,7 +169,7 @@ async function load(blob: Blob, name: string) {
       const channel = buffer.getChannelData(c);
       for (let i = 0; i < samples.length; i++) samples[i] += channel[i] / buffer.numberOfChannels;
     }
-    media = { name, url, samples };
+    media = { name, url, blob, samples };
     timeline.setAudio([samples]);
     ui.sourceInfo.textContent = `${name} · ${formatTime(samples.length / RATE)}`;
   } catch (err) {
@@ -164,9 +184,10 @@ async function load(blob: Blob, name: string) {
 
 ui.video.addEventListener("loadedmetadata", () => {
   // A .webm or .mp4 can carry audio only: show the audiogram card for those.
-  const isVideo = ui.video.videoWidth > 0;
+  isVideo = ui.video.videoWidth > 0;
   ui.screen.classList.toggle("audio-only", !isVideo);
   ui.audiogram.hidden = isVideo;
+  ui.render.textContent = isVideo ? t("renderVideo") : t("renderAudio");
 });
 
 ui.file.addEventListener("change", () => {
@@ -263,6 +284,7 @@ ui.transcribe.addEventListener("click", async () => {
     cues = toCues(words, { lineChars: Number(ui.lineLength.value) });
     edited = false;
     renderCues();
+    updateCuts();
   } catch (err) {
     const offline = /download failed|Failed to fetch|NetworkError/i.test(String(err));
     showError(offline ? new Error(t("errorOffline"), { cause: err }) : err);
@@ -366,8 +388,10 @@ function updateExports() {
     link.href = url;
     link.download = `${base}.${ext}`;
   };
-  set(ui.dlSrt, toSrt(cues), "srt", "application/x-subrip");
-  set(ui.dlVtt, toVtt(cues), "vtt", "text/vtt");
+  // Timed for the cut edit when that's what the user will publish.
+  const timed = segments && ui.cutSubs.checked && hasCuts() ? retimeCues(cues, segments) : cues;
+  set(ui.dlSrt, toSrt(timed), "srt", "application/x-subrip");
+  set(ui.dlVtt, toVtt(timed), "vtt", "text/vtt");
   set(ui.dlTxt, cuesToText(cues), "txt", "text/plain");
 }
 
@@ -380,6 +404,14 @@ function resetTranscript() {
   ui.cuesPanel.hidden = true;
   ui.caption.textContent = "";
   ui.caption.hidden = true;
+  segments = null;
+  ui.cutPanel.hidden = true;
+  timeline.setCuts([]);
+  ui.renderError.hidden = true;
+  ui.renderStatus.hidden = true;
+  ui.dlCut.hidden = true;
+  if (renderUrl) URL.revokeObjectURL(renderUrl);
+  renderUrl = null;
 }
 
 // --- Player --------------------------------------------------------------------
@@ -408,6 +440,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 function tickPlayer() {
+  skipCuts();
   const time = ui.video.currentTime;
   const duration = ui.video.duration || 0;
   ui.play.textContent = ui.video.paused ? t("playBtn") : t("pauseBtn");
@@ -445,6 +478,87 @@ function updateCaption(force: boolean) {
   }
 }
 
+// --- Cutting the pauses ----------------------------------------------------------
+
+function hasCuts() {
+  return !!segments && !!media && keptDuration(segments) < media.samples.length / RATE - 0.05;
+}
+
+function updateCuts() {
+  if (!media || !words.length) return;
+  const duration = media.samples.length / RATE;
+  const minPause = Number(ui.minPause.value);
+  ui.minPauseOut.textContent = `${minPause.toLocaleString(getCurrentLanguage(), { minimumFractionDigits: 1 })} s`;
+  segments = keepSegments(words, duration, { minPause, fillers: ui.cutFillers.checked });
+
+  // The complement, for the timeline and the count.
+  const removed: [number, number][] = [];
+  let at = 0;
+  for (const s of segments) {
+    if (s.start - at > 0.01) removed.push([at / duration, s.start / duration]);
+    at = s.end;
+  }
+  if (duration - at > 0.01) removed.push([at / duration, 1]);
+  timeline.setCuts(ui.cutPreview.checked ? removed : []);
+
+  const kept = keptDuration(segments);
+  ui.cutStats.textContent = removed.length
+    ? t("cutStats")(removed.length, formatTime(duration), formatTime(kept), Math.round((1 - kept / duration) * 100))
+    : t("cutNone");
+  ui.cutPanel.hidden = false;
+  refresh();
+  updateExports();
+}
+
+/** In the preview, jump over what the cut edit leaves out. */
+function skipCuts() {
+  if (!segments || !ui.cutPreview.checked || ui.video.paused || !hasCuts()) return;
+  const time = ui.video.currentTime;
+  const next = segmentAt(time, segments);
+  if (next === -1) {
+    ui.video.pause();
+  } else if (time < segments[next].start - 0.03) {
+    ui.video.currentTime = segments[next].start;
+  }
+}
+
+for (const input of [ui.minPause, ui.cutFillers, ui.cutPreview]) input.addEventListener("input", updateCuts);
+ui.cutSubs.addEventListener("change", updateExports);
+
+ui.render.addEventListener("click", async () => {
+  if (!media || !segments || rendering) return;
+  rendering = true;
+  refresh();
+  ui.renderError.hidden = true;
+  ui.renderProgress.hidden = false;
+  ui.renderStatus.hidden = false;
+  const show = (f: number) => {
+    ui.renderStatus.textContent = t("rendering")(Math.round(f * 100));
+    ui.renderBar.style.width = `${Math.round(f * 100)}%`;
+  };
+  show(0);
+  try {
+    const { blob, extension } = await renderCut(media.blob, segments, show);
+    if (renderUrl) URL.revokeObjectURL(renderUrl);
+    renderUrl = URL.createObjectURL(blob);
+    const name = `${media.name.replace(/\.[^.]+$/, "")}-${t("cutSuffix")}.${extension}`;
+    ui.dlCut.href = renderUrl;
+    ui.dlCut.download = name;
+    ui.dlCut.hidden = false;
+    ui.renderStatus.textContent = t("renderDone")(name);
+    ui.dlCut.click();
+  } catch (err) {
+    console.error(err);
+    ui.renderStatus.hidden = true;
+    ui.renderError.textContent = `${t("renderError")} ${err instanceof Error ? err.message : String(err)}`;
+    ui.renderError.hidden = false;
+  } finally {
+    rendering = false;
+    ui.renderProgress.hidden = true;
+    refresh();
+  }
+});
+
 // --- Helpers -------------------------------------------------------------------
 
 function refresh() {
@@ -453,6 +567,8 @@ function refresh() {
   ui.replace.disabled = busy;
   ui.clean.disabled = busy;
   ui.recordRow.hidden = !!media;
+  ui.render.disabled = !segments || !hasCuts() || rendering || busy;
+  ui.replace.disabled = busy || rendering;
 }
 
 function progress(text: string, fraction: number | null) {
@@ -492,6 +608,8 @@ onLanguageChange(() => {
   if (media) ui.sourceInfo.textContent = `${media.name} · ${formatTime(media.samples.length / RATE)}`;
   if (detection) showDetection();
   if (cues.length) ui.txStats.textContent = t("txStats")(cues.length, words.length, realtimeFactor.toFixed(0));
+  ui.render.textContent = isVideo ? t("renderVideo") : t("renderAudio");
+  if (segments) updateCuts();
   tickPlayer();
 });
 

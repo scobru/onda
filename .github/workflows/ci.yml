@@ -33,10 +33,14 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
           sudo apt-get install -y espeak-ng ffmpeg
-          espeak-ng -v en-us -s 140 -w speech.wav "Hello world. This is a test of the transcription and the subtitles."
+          espeak-ng -v en-us -s 140 -w one.wav "Hello world. This is a test of the transcription."
+          espeak-ng -v en-us -s 140 -w two.wav "And these are the subtitles."
+          # Two seconds of silence between the sentences, for the pause cutter.
+          ffmpeg -loglevel error -i one.wav -f lavfi -t 2 -i anullsrc=r=22050:cl=mono -i two.wav \
+            -filter_complex "[0][1][2]concat=n=3:v=0:a=1" speech.wav
           # A real video: moving test pattern plus the speech, VP9/Opus in WebM
           # (Playwright's Chromium has no H.264/AAC decoder).
-          ffmpeg -loglevel error -f lavfi -i testsrc2=s=640x360:d=8:r=25 -i speech.wav -shortest \
+          ffmpeg -loglevel error -f lavfi -i testsrc2=s=640x360:d=12:r=25 -i speech.wav -shortest \
             -c:v libvpx-vp9 -deadline realtime -cpu-used 8 -c:a libopus speech.webm
           node scripts/e2e.mjs speech.webm en
       - uses: actions/upload-artifact@v5
